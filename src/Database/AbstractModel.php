@@ -12,19 +12,9 @@ abstract class AbstractModel {
     protected $query;
 
     public function __construct() {
-        if(config('database')['driver'] == 'mysql') {
-            $credentials = config('database');
-        
-            $this->connection = (
-                new DBConnection(new MySQLDriver(
-                    $credentials['host'],
-                    $credentials['port'],
-                    $credentials['database'],
-                    $credentials['username'],
-                    $credentials['password']
-                ))
-            )->getConnection();
-        }
+        $this->connection = (
+            new DBConnection(config('database'))
+        )->getConnection();
 
         return $this;
     }
@@ -72,6 +62,8 @@ abstract class AbstractModel {
     }
 
     private function fillables() {
+        $class = new \ReflectionClass($this);
+        
         return array_filter($class->getProperties(\ReflectionProperty::IS_PUBLIC), function($property) {
             return in_array($property->getName(), $this->fillable);
         });

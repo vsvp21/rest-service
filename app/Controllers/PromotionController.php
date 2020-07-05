@@ -25,15 +25,22 @@ class PromotionController
             $urls->push(url('promotions?promotion=' . $promotion->buildUrl()));
         }
 
-        echo $urls;
+        $response = new Response($urls, 200);
+
+        return $response->send();
     }
 
     public function show()
     {
+        $response = new Response();
+
         if(!isset($_GET['promotion'])) {
-            header('HTTP/1.1 404 Not Found');
-            echo json_encode(['message' => 'Promotion not found']);
-            die();
+            $response->setStatusCode(404);
+            $response->setContent(
+                json_encode(['message' => 'Promotion Not Found'])
+            );
+
+            return $response->send();
         }
 
         $id = explode('-', $_GET['promotion'])[0];
@@ -41,14 +48,21 @@ class PromotionController
         $promotion = (new Promotion())
             ->find("id = $id")
             ->get(0);
-
+        
         if(is_null($promotion)) {
-            header('HTTP/1.1 404 Not Found');
-            echo json_encode(['message' => 'Promotion not found']);
-            die();
+            $response->setStatusCode(404);
+            $response->setContent(
+                json_encode(['message' => 'Promotion Not Found'])
+            );
+
+            return $response->send();
         }
 
-        echo $promotion;
+        $response->setStatusCode(200);
+        $response->setContent($promotion);
+        $response->setHeader('Content-Type', 'application/json');
+        
+        return $response->send();
     }
 
     public function randomUpdate() 
@@ -69,19 +83,8 @@ class PromotionController
         $promotion->status = $promotion->status == 0 ? 1 : 0;
         $promotion->save($update = true);
         
-        echo $promotion;
-    }
-
-    public function lol()
-    {
-        $collection = new Collection([
-            'a' => 111,
-            'b' => 222
-        ]);
-
-        $response = new Response($collection, 201, [
-            'Content-Type' => 'application/json',
-            'Charset' => 'UTF-8',
+        $response = new Response($promotion, 200, [
+            'Content-Type' => 'application/json'
         ]);
 
         return $response->send();

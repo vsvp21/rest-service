@@ -21,7 +21,7 @@ class Response
         422 => 'Unprocessable Entity'
     ];
 
-    public function __construct($content = '', $status = 200, $headers = [], $protocol = '1.0')
+    public function __construct($content = '', $status = 200, $headers = [], $protocol = '1.1')
     {
         $this->headers = new Collection($headers);
         $this->setContent($content);

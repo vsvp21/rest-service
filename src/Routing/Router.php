@@ -2,6 +2,7 @@
 
 namespace Core\Routing;
 
+use Core\Http\Response;
 use Core\Support\Collection;
 use Core\Contracts\CollectsRoutes;
 use Core\Routing\ControllerReflector;
@@ -32,13 +33,20 @@ class Router
         if($controllerWithAction) {
             return $this->runController($controllerWithAction);
         } else {
+            $response = new Response();
+            
             $methodNotAllowed = $this->checkForBadMethod();
             if($methodNotAllowed) {
-                header('HTTP/1.1 405 Method Not Allowed');
-                echo json_encode(['message' => $methodNotAllowed]);
+                
+                $response->setStatusCode(405);
+                $response->setContent(json_encode(['message' => $methodNotAllowed]));
+
+                return $response->send();
             } else {
-                header("HTTP/1.1 404 Not Found");
-                echo json_encode(['message' => 'Not Found']);
+                $response->setStatusCode(404);
+                $response->setContent(json_encode(['message' => 'Not Found']));
+
+                return $response->send();
             }
         }
         die;
