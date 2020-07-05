@@ -18,7 +18,7 @@
             "Core\\": "src/"
         },
         "files": [
-            "app/Helpers/config.php"
+            "app/Helpers/helpers.php"
         ]
     }
 }

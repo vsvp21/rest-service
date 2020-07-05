@@ -2,9 +2,11 @@
 
 namespace Core\Support;
 
+use ArrayIterator;
+use IteratorAggregate;
 use Core\Contracts\Collects;
 
-class Collection implements Collects
+class Collection implements Collects, IteratorAggregate
 {
     private $items = [];
     
@@ -47,5 +49,9 @@ class Collection implements Collects
     public function __toString()
     {
         return json_encode($this->items);
+    }
+
+    public function getIterator() {
+        return new ArrayIterator($this->items);
     }
 }

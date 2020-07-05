@@ -12,7 +12,8 @@ class PostgreSQLDriver extends Driver
             $connection = new PDO(
                 "pgsql:host=" . $this->host . ";port=" . $this->port . "dbname=" . $this->db,
                 $this->username,
-                $this->password
+                $this->password,
+                [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"]
             );
 
             $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

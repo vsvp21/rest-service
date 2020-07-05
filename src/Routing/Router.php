@@ -32,7 +32,8 @@ class Router
         if($controllerWithAction) {
             return $this->runController($controllerWithAction);
         } else {
-            if($methodNotAllowed = $this->checkForBadMethod()) {
+            $methodNotAllowed = $this->checkForBadMethod();
+            if($methodNotAllowed) {
                 header('HTTP/1.1 405 Method Not Allowed');
                 echo json_encode(['message' => $methodNotAllowed]);
             } else {
@@ -48,7 +49,7 @@ class Router
     }
 
     private function dispatchUri() {
-        return $this->request->get('REQUEST_URI');
+        return $this->request->get('PATH_INFO');
     }
 
     private function dispatchControllerWithAction() {
@@ -66,7 +67,11 @@ class Router
             }
         }
 
-        return 'Method ' . $this->method . ' Not Allowed, Supported ' . implode(' ,', $methods);
+        if($methods != false) {
+            return 'Method ' . $this->method . ' Not Allowed, Supported ' . implode(' ,', $methods);
+        }
+
+        return false;
     }
 
     private function runController($controllerWithAction) {

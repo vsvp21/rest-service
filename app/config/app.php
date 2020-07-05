@@ -2,6 +2,7 @@
 
 return [
     'mode' => 'dev',
+    'storage' => __DIR__ . '/../../storage',
     'database' => [
         'driver' => 'mysql',
         'host' => '127.0.0.1',

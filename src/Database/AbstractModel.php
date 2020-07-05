@@ -9,7 +9,7 @@ use Core\Database\DBConnection;
 abstract class AbstractModel {
     protected $tableName;
     protected $connection;
-    private $class;
+    protected $query;
 
     public function __construct() {
         if(config('database')['driver'] == 'mysql') {
@@ -29,9 +29,8 @@ abstract class AbstractModel {
         return $this;
     }
 
-    public function save() {
-
-        $this->class = new \ReflectionClass($this);
+    public function save($update = false) {
+        $class = new \ReflectionClass($this);
         $tableName = $this->getTableName();
 
         $propsToImplode = [];
@@ -42,11 +41,11 @@ abstract class AbstractModel {
 
         $setClause = implode(',',$propsToImplode);
         $sqlQuery = '';
-
-        if ($this->id > 0) {
-            $sqlQuery = "UPDATE `$tableName` SET $setClause, `updated_at` = now() WHERE id = " . $this->id;
-        } else {
+        
+        if($update == false) {
             $sqlQuery = "INSERT INTO `$tableName` SET $setClause, `created_at` = now(), `updated_at` = NULL";
+        } else {
+            $sqlQuery = "UPDATE `$tableName` SET $setClause, `updated_at` = now() WHERE id = " . $this->id;
         }
 
         $result = $this->connection->exec($sqlQuery);
@@ -54,34 +53,58 @@ abstract class AbstractModel {
         if ($this->connection->errorCode() != "0000") {
             throw new \Exception($this->connection->errorInfo()[2]);
         }
-    
-        $this->connection = null;
+
         return $result;
     }
 
     public function morph(array $object)
     {
-        $this->class = new \ReflectionClass($this);
-        foreach($this->class->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
+        $class = new \ReflectionClass($this);
+        
+        $entity = $class->newInstance();
+        foreach($class->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
             if (isset($object[$prop->getName()])) {
-              $prop->setValue($this, $object[$prop->getName()]);
+              $prop->setValue($entity, $object[$prop->getName()]);
             }
         }
         
-        return $this;
+        return $entity;
     }
 
     private function fillables() {
-        return array_filter($this->class->getProperties(\ReflectionProperty::IS_PUBLIC), function($property) {
+        return array_filter($class->getProperties(\ReflectionProperty::IS_PUBLIC), function($property) {
             return in_array($property->getName(), $this->fillable);
         });
     }
 
+    public function select($columns = []) {
+        if($columns == false) {
+            $this->query = 'SELECT * FROM ' . $this->getTableName();
+        } else {
+            $this->query = 'SELECT ' . implode(',', $columns) . ' FROM ' . $this->getTableName();
+        }
+
+        return $this;
+    }
+
+    public function orderBy($column, $dir)
+    {
+        $this->query .=  " ORDER BY $column $dir ";
+
+        return $this;
+    }
+
+    public function limit($n)
+    {
+        $this->query .= " LIMIT $n ";
+
+        return $this;
+    }
+
     public function find($options = []) {
-
-        $result = new Collection();
-
-        $query = 'SELECT * FROM ' . $this->getTableName();
+        if(strlen($this->query) == 0) {
+            $this->query = 'SELECT * FROM ' . $this->getTableName();
+        }
     
         if (is_array($options)) {
             $whereClause = '';
@@ -92,32 +115,35 @@ abstract class AbstractModel {
                     $whereConditions[] = '`' . $key . '` = "' . $value . '"';
                 }
                 $whereClause = " WHERE " . implode(' AND ', $whereConditions);
-                $query .= $whereClause;
+                $this->query .= $whereClause;
             }
         } elseif (is_string($options)) { 
-            $query .= ' WHERE ' . $options;
+            $this->query .= ' WHERE ' . $options;
         } else {
             throw new \Exception('Wrong parameter type of options');
         }
         
-        $raw = $this->connection->query($query);
-
-        foreach ($raw as $rawRow) {
-            $result->push($this->morph($rawRow));
-        }
-        
-        $this->connection = null;
-        return $result;
+        return $this->fetch();
     }
 
     public function getTableName() {
         if ($this->tableName != '') {
             return $this->tableName;
         }
-        return strtolower($this->class->getShortName());
+        return strtolower($class->getShortName());
     }
 
     public function __toString() {
         return json_encode($this);
+    }
+
+    public function fetch() {
+        $result = new Collection();
+        $raw = $this->connection->query($this->query);
+        
+        foreach ($raw as $rawRow) {;
+            $result->push($this->morph($rawRow));
+        }
+        return $result;
     }
 }
